@@ -112,7 +112,7 @@ jobs:
       with:
         context: ./sample-app
         push: false
-        tags: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
         load: true
 
     - name: Install Trivy
@@ -122,8 +122,8 @@ jobs:
     - name: Run Trivy vulnerability scanner
       run: |
         mkdir -p ${{ env.REPORTS_DIR }}
-        trivy image --format json --output ${{ env.REPORTS_DIR }}/trivy-results.json ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-        trivy image ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        trivy image --format json --output ${{ env.REPORTS_DIR }}/trivy-results.json ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        trivy image ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
     - name: Upload Trivy scan results
       uses: actions/upload-artifact@v4
@@ -140,7 +140,10 @@ jobs:
 
     - name: Start application container
       run: |
-        docker run -d -p 8080:8080 --name myapp ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        docker images
+        # Use the image that was built locally
+        docker run -d -p 8080:8080 --name myapp ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        docker ps
         sleep 20 # Wait for the application to start
 
     - name: ZAP Scan
@@ -199,7 +202,7 @@ jobs:
         export PROJECT_KEY=${{ github.repository }}
         export TRIVY_REPORT=${{ env.REPORTS_DIR }}/trivy-results.json
         export OUTPUT_DIR=${{ env.REPORTS_DIR }}
-        export IMAGE_NAME=${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+        export IMAGE_NAME=${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
         export APP_URL=http://localhost:8080
         export ZAP_REPORT=${{ env.REPORTS_DIR }}/zap-results.json
         ./jenkins/security-reports.sh
