@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nexus
+  template:
+    metadata:
+      labels:
+        app: nexus
+    spec:
+      containers:
+      - name: nexus
+        image: sonatype/nexus3:latest
+        ports:
+        - containerPort: 8081
+        volumeMounts:
+        - name: nexus-data
+          mountPath: /nexus-data
+        resources:
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: nexus-data
+        persistentVolumeClaim:
+          claimName: nexus-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus
+  namespace: devops
+spec:
+  selector:
+    app: nexus
+  ports:
+  - port: 8081
+    targetPort: 8081
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nexus-pvc
+  namespace: devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  namespace: devops
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: nexus.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nexus
+            port:
+              number: 8081 

@@ -1,0 +1,221 @@
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              labels:
+                app: cicd
+            spec:
+              containers:
+              - name: maven
+                image: maven:3.8.6-openjdk-11
+                command:
+                - cat
+                tty: true
+                volumeMounts:
+                - name: m2
+                  mountPath: /root/.m2
+              - name: docker
+                image: docker:20.10.16-dind
+                securityContext:
+                  privileged: true
+                volumeMounts:
+                - name: docker-socket
+                  mountPath: /var/run/docker.sock
+              - name: trivy
+                image: aquasec/trivy:latest
+                command:
+                - cat
+                tty: true
+                volumeMounts:
+                - name: reports
+                  mountPath: /reports
+              - name: security-tools
+                image: curlimages/curl:latest
+                command:
+                - cat
+                tty: true
+              - name: zap
+                image: owasp/zap2docker-stable:latest
+                command:
+                - cat
+                tty: true
+                volumeMounts:
+                - name: reports
+                  mountPath: /reports
+              volumes:
+              - name: m2
+                persistentVolumeClaim:
+                  claimName: m2-cache
+              - name: docker-socket
+                hostPath:
+                  path: /var/run/docker.sock
+              - name: reports
+                persistentVolumeClaim:
+                  claimName: security-reports-pvc
+            """
+        }
+    }
+    
+    environment {
+        DOCKER_REGISTRY = "docker.io"
+        IMAGE_NAME = "myapp"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        SONAR_URL = "http://sonarqube:9000"
+        NEXUS_URL = "http://nexus:8081"
+        SONAR_TOKEN = credentials('sonarqube-token')
+        REPORTS_DIR = "/reports/security"
+        APP_URL = "http://sample-app:8080"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                container('maven') {
+                    sh 'mvn clean package'
+                }
+            }
+        }
+        
+        stage('Unit Tests') {
+            steps {
+                container('maven') {
+                    sh 'mvn test'
+                }
+            }
+            post {
+                always {
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+        
+        stage('SonarQube Analysis') {
+            steps {
+                container('maven') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar -Dsonar.host.url=${SONAR_URL}'
+                    }
+                }
+            }
+            post {
+                always {
+                    echo "SonarQube analysis completed"
+                }
+            }
+        }
+        
+        stage('Publish to Nexus') {
+            steps {
+                container('maven') {
+                    sh 'mvn deploy -DskipTests'
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                container('docker') {
+                    sh 'docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .'
+                }
+            }
+        }
+        
+        stage('Scan Image for Vulnerabilities') {
+            steps {
+                container('trivy') {
+                    sh """
+                    mkdir -p ${REPORTS_DIR}
+                    trivy image --format json --output ${REPORTS_DIR}/trivy-results.json ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    trivy image ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+        
+        stage('Generate Security Reports') {
+            steps {
+                container('security-tools') {
+                    sh """
+                    mkdir -p ${REPORTS_DIR}
+                    chmod +x jenkins/security-reports.sh
+                    export SONAR_URL=${SONAR_URL}
+                    export SONAR_TOKEN=${SONAR_TOKEN}
+                    export PROJECT_KEY=${JOB_NAME}
+                    export TRIVY_REPORT=${REPORTS_DIR}/trivy-results.json
+                    export OUTPUT_DIR=${REPORTS_DIR}
+                    export IMAGE_NAME=${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                    ./jenkins/security-reports.sh
+                    """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/security/*.html, reports/security/*.json', fingerprint: true
+                    echo "Security reports generated and archived"
+                }
+            }
+        }
+        
+        stage('DAST with ZAP') {
+            steps {
+                container('zap') {
+                    sh """
+                    mkdir -p ${REPORTS_DIR}
+                    zap-baseline.py -t ${APP_URL} -g gen.conf -r ${REPORTS_DIR}/zap-report.html -J ${REPORTS_DIR}/zap-results.json -I
+                    """
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'reports/security/zap-*.*, reports/security/gen.conf', fingerprint: true
+                    echo "ZAP scan completed and report archived"
+                }
+            }
+        }
+        
+        stage('Push to Registry') {
+            steps {
+                container('docker') {
+                    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'docker login ${DOCKER_REGISTRY} -u ${DOCKER_USER} -p ${DOCKER_PASSWORD}'
+                        sh 'docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}'
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to Kubernetes') {
+            steps {
+                container('maven') {
+                    withKubeConfig([credentialsId: 'kubernetes-credentials']) {
+                        sh 'sed -i "s|{{IMAGE_TAG}}|${IMAGE_TAG}|g" kubernetes/deployment.yaml'
+                        sh 'kubectl apply -f kubernetes/deployment.yaml'
+                        sh 'kubectl apply -f kubernetes/service.yaml'
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+            echo 'Access security reports at Jenkins artifacts'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        always {
+            echo 'Cleaning up workspace'
+        }
+    }
+} 

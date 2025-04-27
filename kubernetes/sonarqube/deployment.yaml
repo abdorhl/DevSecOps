@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+  namespace: devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      containers:
+      - name: sonarqube
+        image: sonarqube:lts
+        ports:
+        - containerPort: 9000
+        env:
+        - name: SONARQUBE_JDBC_USERNAME
+          value: sonar
+        - name: SONARQUBE_JDBC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sonarqube-db-credentials
+              key: password
+        - name: SONARQUBE_JDBC_URL
+          value: jdbc:postgresql://sonarqube-db:5432/sonar
+        volumeMounts:
+        - name: sonarqube-data
+          mountPath: /opt/sonarqube/data
+        - name: sonarqube-extensions
+          mountPath: /opt/sonarqube/extensions
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+      volumes:
+      - name: sonarqube-data
+        persistentVolumeClaim:
+          claimName: sonarqube-data-pvc
+      - name: sonarqube-extensions
+        persistentVolumeClaim:
+          claimName: sonarqube-extensions-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube
+  namespace: devops
+spec:
+  selector:
+    app: sonarqube
+  ports:
+  - port: 9000
+    targetPort: 9000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarqube-data-pvc
+  namespace: devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarqube-extensions-pvc
+  namespace: devops
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sonarqube-ingress
+  namespace: devops
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: sonarqube.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sonarqube
+            port:
+              number: 9000 

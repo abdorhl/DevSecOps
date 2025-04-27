@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: trivy-system
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: trivy-operator
+  namespace: kube-system
+spec:
+  chart: https://github.com/aquasecurity/trivy-operator/releases/download/v0.1.5/trivy-operator-0.1.5.tgz
+  targetNamespace: trivy-system
+  valuesContent: |-
+    trivy:
+      ignoreUnfixed: true
+    operator:
+      replicas: 1
+      resources:
+        limits:
+          cpu: 500m
+          memory: 500Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi 

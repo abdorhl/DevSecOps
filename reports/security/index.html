@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevSecOps Security Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        .dashboard-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+            font-weight: bold;
+        }
+        .security-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        .timestamp {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        .vulnerability-severity {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .severity-critical {
+            background-color: #dc3545;
+        }
+        .severity-high {
+            background-color: #fd7e14;
+        }
+        .severity-medium {
+            background-color: #ffc107;
+        }
+        .severity-low {
+            background-color: #20c997;
+        }
+        .footer {
+            margin-top: 30px;
+            padding: 20px 0;
+            background-color: #343a40;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-shield-alt"></i> DevSecOps Security Dashboard</h1>
+                    <p class="timestamp">Last updated: April 27, 2025 14:30</p>
+                </div>
+                <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+                    <span class="badge bg-success p-2">SECURE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container container">
+        <div class="alert alert-primary" role="alert">
+            <i class="fas fa-info-circle"></i> This dashboard provides an overview of security scanning results from various security tools in the DevSecOps pipeline.
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3 mb-4">
+                <div class="dashboard-card card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-cube"></i> Trivy Container Scan
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="security-icon text-primary">
+                            <i class="fas fa-cubes"></i>
+                        </div>
+                        <h5 class="card-title">Container Vulnerability Scan</h5>
+                        <p class="card-text">Scans container images for vulnerabilities in OS packages and application dependencies.</p>
+                        <a href="trivy-security-report.html" class="btn btn-outline-primary">View Report</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="dashboard-card card h-100">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-code"></i> SonarQube Analysis
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="security-icon text-success">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <h5 class="card-title">Static Code Analysis</h5>
+                        <p class="card-text">Identifies code quality issues, security vulnerabilities, and code smells in source code.</p>
+                        <a href="sonarqube-security-report.html" class="btn btn-outline-success">View Report</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="dashboard-card card h-100">
+                    <div class="card-header bg-warning text-white">
+                        <i class="fas fa-spider"></i> OWASP ZAP Scan
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="security-icon text-warning">
+                            <i class="fas fa-bug"></i>
+                        </div>
+                        <h5 class="card-title">Dynamic Application Scan</h5>
+                        <p class="card-text">Identifies security vulnerabilities in running web applications through active scanning.</p>
+                        <a href="zap-security-report.html" class="btn btn-outline-warning">View Report</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3 mb-4">
+                <div class="dashboard-card card h-100">
+                    <div class="card-header bg-danger text-white">
+                        <i class="fas fa-project-diagram"></i> Dependency Check
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="security-icon text-danger">
+                            <i class="fas fa-link"></i>
+                        </div>
+                        <h5 class="card-title">Dependency Analysis</h5>
+                        <p class="card-text">Scans for known vulnerabilities in project dependencies and third-party libraries.</p>
+                        <a href="#" class="btn btn-outline-danger">View Report</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="dashboard-card card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <i class="fas fa-shield-alt"></i> Security Overview
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h4>Latest Security Status</h4>
+                                <p>Security scan completed on April 27, 2025 at 14:30. Overall security posture is good with 1 high vulnerability detected that should be addressed.</p>
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> The latest scan detected 1 high severity vulnerability in the container image related to zlib. This should be addressed in the next release.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <h4>Critical Vulnerabilities</h4>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span><div class="vulnerability-severity severity-critical"></div> Critical</span>
+                                    <span class="metric-value">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span><div class="vulnerability-severity severity-high"></div> High</span>
+                                    <span class="metric-value">1</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span><div class="vulnerability-severity severity-medium"></div> Medium</span>
+                                    <span class="metric-value">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span><div class="vulnerability-severity severity-low"></div> Low</span>
+                                    <span class="metric-value">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p>&copy; 2025 DevSecOps Project</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p>Security Dashboard v1.0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
