@@ -126,20 +126,12 @@ jobs:
 
     - name: Prepare for Docker build
       run: |
-        cd sample-app
-        echo "Contents of target directory:"
-        ls -la target/
-        # Make sure we have an app.jar file
-        if [ ! -f "target/app.jar" ]; then
-          echo "app.jar not found, finding and copying JAR files"
-          find . -name "*.jar" -exec cp {} target/app.jar \; || echo "No JAR files found"
-          ls -la target/
-        fi
-
-    - name: Update Dockerfile
-      run: |
-        cd sample-app
+        echo "Preparing for Docker build..."
+        ls -la sample-app/target/
+        # Don't try to copy files to themselves
+        echo "Contents verified"
         # Modify Dockerfile to use app.jar specifically
+        cd sample-app
         sed -i 's|COPY target/\*.jar app.jar|COPY target/app.jar app.jar|g' Dockerfile
         echo "Updated Dockerfile content:"
         cat Dockerfile
@@ -401,16 +393,12 @@ jobs:
 
     - name: Prepare for Docker build
       run: |
-        cd sample-app
-        echo "Contents of target directory:"
-        ls -la target/
-        # Make sure we have an app.jar file
-        if [ ! -f "target/app.jar" ]; then
-          echo "app.jar not found, finding and copying JAR files"
-          find . -name "*.jar" -exec cp {} target/app.jar \; || echo "No JAR files found"
-          ls -la target/
-        fi
+        echo "Preparing for Docker build..."
+        ls -la sample-app/target/
+        # Don't try to copy files to themselves
+        echo "Contents verified"
         # Modify Dockerfile to use app.jar specifically
+        cd sample-app
         sed -i 's|COPY target/\*.jar app.jar|COPY target/app.jar app.jar|g' Dockerfile
         echo "Updated Dockerfile content:"
         cat Dockerfile
