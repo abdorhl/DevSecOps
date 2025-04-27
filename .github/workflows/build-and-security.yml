@@ -148,6 +148,31 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Download JAR artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: app-jar
+        path: sample-app/target/
+
+    - name: Prepare for Docker build
+      run: |
+        echo "Preparing for Docker build..."
+        mkdir -p ./sample-app/target
+        ls -la ./sample-app/target/
+        find sample-app/target -name "*.jar" -type f | head -1 | xargs -I {} cp {} ./sample-app/target/app.jar
+        ls -la ./sample-app/target/
+        ls -la ./sample-app/
+
+    - name: Build Docker image directly
+      run: |
+        cd sample-app
+        echo "Dockerfile content:"
+        cat Dockerfile
+        echo "Building image directly..."
+        docker build -t myapp:${{ env.IMAGE_TAG }} .
+        echo "Docker images after build:"
+        docker images
+
     - name: Start application container
       run: |
         echo "Starting application container..."
