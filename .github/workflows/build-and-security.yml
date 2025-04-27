@@ -66,6 +66,10 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       run: |
         cd sample-app
+        # Ensure URL has proper scheme
+        if [[ ! "$SONAR_HOST_URL" =~ ^https?:// ]]; then
+          SONAR_HOST_URL="http://$SONAR_HOST_URL"
+        fi
         mvn sonar:sonar -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
         mkdir -p ${{ env.REPORTS_DIR }}
         
@@ -77,7 +81,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: test-results
         path: sample-app/target/surefire-reports
@@ -148,7 +152,7 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Download all scan results
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: ./artifacts
 
@@ -169,6 +173,10 @@ jobs:
       run: |
         chmod +x jenkins/security-reports.sh
         export SONAR_URL=${{ secrets.SONAR_HOST_URL }}
+        # Ensure URL has proper scheme
+        if [[ ! "$SONAR_URL" =~ ^https?:// ]]; then
+          SONAR_URL="http://$SONAR_URL"
+        fi
         export SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}
         export PROJECT_KEY=${{ github.repository }}
         export TRIVY_REPORT=${{ env.REPORTS_DIR }}/trivy-results.json
