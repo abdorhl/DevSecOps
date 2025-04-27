@@ -181,17 +181,15 @@ jobs:
     - name: Prepare for Docker build
       run: |
         echo "Preparing for Docker build..."
-        mkdir -p ./sample-app/target
-        ls -la ./sample-app/target/
-        find sample-app/target -name "*.jar" -type f | head -1 | xargs -I {} cp {} ./sample-app/target/app.jar
-        ls -la ./sample-app/target/
-        ls -la ./sample-app/
+        ls -la sample-app/target/
+        # Ensure we have the directory but don't try to copy files to themselves
+        echo "Contents verified"
 
     - name: Build Docker image directly
       run: |
         cd sample-app
-        # Modify Dockerfile if needed to use the correct JAR path
-        sed -i 's|COPY target/\*.jar|COPY target/*.jar|g' Dockerfile
+        # Modify Dockerfile to use app.jar specifically
+        sed -i 's|COPY target/\*.jar app.jar|COPY target/app.jar app.jar|g' Dockerfile
         echo "Dockerfile content:"
         cat Dockerfile
         echo "Building image directly..."
