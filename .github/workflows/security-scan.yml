@@ -34,7 +34,7 @@ jobs:
         trivy image ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
     - name: Upload Trivy scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: trivy-results
         path: ${{ env.REPORTS_DIR }}/trivy-results.json
@@ -59,7 +59,7 @@ jobs:
         cat zap-full-scan.json > ${{ env.REPORTS_DIR }}/zap-results.json
 
     - name: Upload ZAP scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: zap-results
         path: ${{ env.REPORTS_DIR }}
@@ -93,7 +93,7 @@ jobs:
         curl -u ${{ secrets.SONAR_TOKEN }}: "${{ secrets.SONAR_HOST_URL }}/api/hotspots/search?projectKey=${{ github.repository }}&ps=500" > ${{ env.REPORTS_DIR }}/sonarqube-hotspots.json
 
     - name: Upload SonarQube scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sonarqube-results
         path: ${{ env.REPORTS_DIR }}/*sonarqube*.json
@@ -142,7 +142,7 @@ jobs:
         ./jenkins/security-reports.sh
 
     - name: Upload Security Dashboard
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-dashboard
         path: ${{ env.REPORTS_DIR }}

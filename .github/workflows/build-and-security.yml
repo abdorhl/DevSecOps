@@ -39,7 +39,7 @@ jobs:
 
     - name: Upload Test Results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results
         path: sample-app/target/surefire-reports/*.xml
@@ -104,7 +104,7 @@ jobs:
         trivy image ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
     - name: Upload Trivy scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: trivy-results
         path: ${{ env.REPORTS_DIR }}/trivy-results.json
@@ -135,7 +135,7 @@ jobs:
         cat zap-baseline-report.json > ${{ env.REPORTS_DIR }}/zap-results.json
 
     - name: Upload ZAP scan results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: zap-results
         path: ${{ env.REPORTS_DIR }}
@@ -179,7 +179,7 @@ jobs:
         ./jenkins/security-reports.sh
 
     - name: Upload Security Dashboard
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-dashboard
         path: ${{ env.REPORTS_DIR }}
