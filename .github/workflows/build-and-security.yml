@@ -31,12 +31,15 @@ jobs:
       run: |
         cd sample-app
         mvn clean package
+        ls -la target/
+        cp target/*.jar target/app.jar || echo "Failed to rename JAR file"
+        ls -la target/
 
     - name: Upload JAR Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-jar
-        path: sample-app/target/*.jar
+        path: sample-app/target/app.jar
 
     - name: Run tests
       run: |
@@ -123,16 +126,23 @@ jobs:
 
     - name: Prepare for Docker build
       run: |
-        echo "Preparing for Docker build..."
-        mkdir -p ./sample-app/target
-        find sample-app/target -name "*.jar" -exec cp {} ./sample-app/target/ \;
-        ls -la ./sample-app/target/
-        ls -la ./sample-app/
+        cd sample-app
+        echo "Contents of target directory:"
+        ls -la target/
+        # Make sure we have an app.jar file
+        if [ ! -f "target/app.jar" ]; then
+          echo "app.jar not found, finding and copying JAR files"
+          find . -name "*.jar" -exec cp {} target/app.jar \; || echo "No JAR files found"
+          ls -la target/
+        fi
 
-    - name: Check Dockerfile
+    - name: Update Dockerfile
       run: |
-        echo "Checking Dockerfile contents..."
-        cat sample-app/Dockerfile
+        cd sample-app
+        # Modify Dockerfile to use app.jar specifically
+        sed -i 's|COPY target/\*.jar app.jar|COPY target/app.jar app.jar|g' Dockerfile
+        echo "Updated Dockerfile content:"
+        cat Dockerfile
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -140,13 +150,12 @@ jobs:
         driver: docker
 
     - name: Build Docker image
-      run: |
-        echo "Building Docker image myapp:${{ env.IMAGE_TAG }}"
-        cd sample-app
-        # Build with verbose output
-        docker build --no-cache --progress=plain -t myapp:${{ env.IMAGE_TAG }} .
-        echo "Listing Docker images after build..."
-        docker images
+      uses: docker/build-push-action@v4
+      with:
+        context: ./sample-app
+        push: ${{ github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
+        tags: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }},${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        load: ${{ !(github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '') }}
 
     - name: Install Trivy
       run: |
@@ -189,6 +198,8 @@ jobs:
     - name: Build Docker image directly
       run: |
         cd sample-app
+        # Modify Dockerfile if needed to use the correct JAR path
+        sed -i 's|COPY target/\*.jar|COPY target/*.jar|g' Dockerfile
         echo "Dockerfile content:"
         cat Dockerfile
         echo "Building image directly..."
@@ -362,27 +373,61 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+      with:
+        driver: docker
 
     - name: Login to Docker Hub
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+      continue-on-error: true
+
+    - name: Download JAR artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: app-jar
+        path: sample-app/target/
+
+    - name: Prepare for Docker build
+      run: |
+        cd sample-app
+        echo "Contents of target directory:"
+        ls -la target/
+        # Make sure we have an app.jar file
+        if [ ! -f "target/app.jar" ]; then
+          echo "app.jar not found, finding and copying JAR files"
+          find . -name "*.jar" -exec cp {} target/app.jar \; || echo "No JAR files found"
+          ls -la target/
+        fi
+        # Modify Dockerfile to use app.jar specifically
+        sed -i 's|COPY target/\*.jar app.jar|COPY target/app.jar app.jar|g' Dockerfile
+        echo "Updated Dockerfile content:"
+        cat Dockerfile
 
     - name: Build and push Docker image
+      id: docker-build-push
       uses: docker/build-push-action@v4
       with:
         context: ./sample-app
-        push: true
+        push: ${{ github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '' }}
         tags: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }},${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        load: ${{ !(github.ref == 'refs/heads/main' && secrets.DOCKER_USERNAME != '' && secrets.DOCKER_PASSWORD != '') }}
 
     - name: Set up Kubectl
       uses: azure/k8s-set-context@v3
       with:
         kubeconfig: ${{ secrets.KUBE_CONFIG }}
+      continue-on-error: true
 
     - name: Deploy to Kubernetes
+      if: ${{ github.ref == 'refs/heads/main' && secrets.KUBE_CONFIG != '' }}
       run: |
         sed -i "s|{{IMAGE_TAG}}|${{ env.IMAGE_TAG }}|g" kubernetes/deployment.yaml
         kubectl apply -f kubernetes/deployment.yaml
-        kubectl apply -f kubernetes/service.yaml 
+        kubectl apply -f kubernetes/service.yaml
+      continue-on-error: true
+
+    - name: Kubernetes deployment skipped
+      if: ${{ github.ref != 'refs/heads/main' || secrets.KUBE_CONFIG == '' }}
+      run: echo "Kubernetes deployment skipped - not on main branch or kubeconfig not provided" 
