@@ -1,0 +1,40 @@
+# Maven build artifacts
+sample-app/target/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# Compiled class files
+*.class
+
+# Build generated files
+/bin/
+/out/
+
+# Logs and reports
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Docker generated files
+.docker/
+
+# Only exclude raw JSON security reports, keep HTML reports
+reports/security/*.json
+# reports/security/*.html  # Keeping HTML reports
+
+# Generated config files
+gen.conf
+
+# Dependencies
+node_modules/ 
